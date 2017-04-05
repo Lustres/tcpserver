@@ -36,7 +36,7 @@
 -spec(start_link(ListenSocket :: gen_tcp:socket()) ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link(ListenSocket) ->
-  gen_server:start_link(?MODULE, ListenSocket, []).
+  gen_server:start_link(?MODULE, [ListenSocket], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -52,7 +52,7 @@ start_link(ListenSocket) ->
 %%--------------------------------------------------------------------
 -spec(init(Args :: term()) ->
   {ok, State :: #state{}}).
-init(ListenSocket) ->
+init([ListenSocket]) ->
   self() ! accept,
   {ok, #state{socket = ListenSocket}}.
 
@@ -67,7 +67,7 @@ init(ListenSocket) ->
     State :: #state{}) ->
   {reply, ok, NewState :: #state{}}).
 handle_call(Request, _From, State) ->
-  unknown_msg(call, Request),
+  tcpserver_lib:unknown_msg(call, Request),
   {reply, ok, State}.
 
 %%--------------------------------------------------------------------
@@ -80,7 +80,7 @@ handle_call(Request, _From, State) ->
 -spec(handle_cast(Request :: term(), State :: #state{}) ->
   {noreply, NewState :: #state{}}).
 handle_cast(Request, State) ->
-  unknown_msg(cast, Request),
+  tcpserver_lib:unknown_msg(cast, Request),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -97,6 +97,7 @@ handle_cast(Request, State) ->
   {stop, normal | {tcp_error, gen_tcp:socket(), term()}, NewState :: #state{}}).
 handle_info(accept, State = #state{socket=ListenSocket}) ->
   {ok, AcceptSocket} = gen_tcp:accept(ListenSocket),
+  send(AcceptSocket, "Hello", []),
   {noreply, State#state{socket = AcceptSocket}};
 
 handle_info({tcp, _Port, <<"quit", _/binary>>}, S) ->
@@ -118,7 +119,7 @@ handle_info(Reason = {tcp_error, _Socket, _Reason}, S) ->
   {stop, Reason, S};
 
 handle_info(Info, S) ->
-  unknown_msg(info, Info),
+  tcpserver_lib:unknown_msg(info, Info),
   {noreply, S}.
 
 %%--------------------------------------------------------------------
@@ -134,8 +135,8 @@ handle_info(Info, S) ->
 %%--------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
-terminate(_Reason, _State) ->
-  ok.
+terminate(_Reason, S) ->
+  gen_tcp:close(S#state.socket).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -167,17 +168,5 @@ code_change(_OldVsn, State, _Extra) ->
         -> ok).
 send(Socket, Str, Args) ->
   ok = gen_tcp:send(Socket, io_lib:format(Str++"~n", Args)),
-  ok = inet:setopts(Socket, {active, once}),
+  ok = inet:setopts(Socket, [{active, once}]),
   ok.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handle unknown massage
-%% use system log
-%% @spec unknown_msg(Type, Msg) -> ok
-%% @end
-%%--------------------------------------------------------------------
--spec(unknown_msg(Type :: call | cast | info | term(), Msg :: any()) -> ok).
-unknown_msg(Type, Msg) ->
-  error_logger:warning_msg("received unknown ~p: ~p~n", [Type, Msg]).
