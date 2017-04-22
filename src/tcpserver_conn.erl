@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @author Lustres
-%%% @doc
+%%% @doc Connection handler
 %%%
 %%% @end
 %%% Created : 03. Apr 2017 21:13
@@ -105,14 +105,14 @@ handle_info({tcp, _Port, <<"quit", _/binary>>}, S) ->
   {stop, normal, S};
 
 handle_info({tcp, _Port, Msg}, State) when is_binary(Msg) ->
-  send(State#state.socket, "received msg: ~p", [Msg]),
+  send(State#state.socket, "received msg: ~p", [binary:bin_to_list(Msg)]),
   {noreply, State};
 
 handle_info({tcp, _Port, _Msg}, State) ->
   send(State#state.socket, "received unknown msg", []),
   {noreply, State};
 
-handle_info({{tcp_close, _Socket}}, S) ->
+handle_info({tcp_closed, _Socket}, S) ->
   {stop, normal, S};
 
 handle_info(Reason = {tcp_error, _Socket, _Reason}, S) ->
@@ -167,6 +167,6 @@ code_change(_OldVsn, State, _Extra) ->
 -spec(send(Socket :: gen_tcp:socket(), Str :: string(), Args :: [term()])
         -> ok).
 send(Socket, Str, Args) ->
-  ok = gen_tcp:send(Socket, io_lib:format(Str++"~n", Args)),
+  ok = gen_tcp:send(Socket, list_to_binary(io_lib:format(Str++"~n", Args))),
   ok = inet:setopts(Socket, [{active, once}]),
   ok.

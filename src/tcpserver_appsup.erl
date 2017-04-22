@@ -1,17 +1,17 @@
 %%%-------------------------------------------------------------------
 %%% @author Lustres
-%%% @doc Supervisor of tcpserver_conn
-%%% Make all connections on one port alive
+%%% @doc
+%%%
 %%% @end
-%%% Created : 04. Apr 2017 14:09
+%%% Created : 05. Apr 2017 22:32
 %%%-------------------------------------------------------------------
--module(tcpserver_conn_sup).
+-module(tcpserver_appsup).
 -author("Lustres").
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/1]).
+-export([start_link/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -26,10 +26,10 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
--spec(start_link(ListenSocket ::inet:socket()) ->
+-spec(start_link() ->
   {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link(ListenSocket) ->
-  supervisor:start_link(?MODULE, [ListenSocket]).
+start_link() ->
+  supervisor:start_link(?MODULE, []).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -52,11 +52,20 @@ start_link(ListenSocket) ->
   }} |
   ignore |
   {error, Reason :: term()}).
-init([ListenSocket]) ->
-  ChildSpec = {conn_handler,
-               {tcpserver_conn, start_link, [ListenSocket]},
-               temporary,
-               10,
-               worker,
-               [tcpserver_conn]},
-  {ok, { {simple_one_for_one, 0, 1}, [ChildSpec]}}.
+init([]) ->
+  MngSpec = {manager,
+             {tcpserver_manager, start_link, []},
+             permanent,
+             2000,
+             worker,
+             [tcpserver_manager]},
+
+
+  AppSpec = {appsup,
+             {tcpserver_supersup, start_link, []},
+             permanent,
+             2000,
+             supervisor,
+             [tcpserver_supersup]},
+
+  {ok, {{one_for_all, 0, 1}, [MngSpec, AppSpec]}}.

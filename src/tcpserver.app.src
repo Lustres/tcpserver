@@ -8,7 +8,15 @@
     stdlib
    ]},
   {env,[]},
-  {modules, []},
+  {modules, [tcpserver_app,
+             tcpserver_appsup,
+             tcpserver_conn,
+             tcpserver_conn_sup,
+             tcpserver_lib,
+             tcpserver_manager,
+             tcpserver_serv,
+             tcpserver_sup,
+             tcpserver_supersup]},
 
   {maintainers, []},
   {licenses, []},

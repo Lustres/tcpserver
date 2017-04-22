@@ -9,14 +9,13 @@
 -author("Lustres").
 
 %% API
--export([unknown_msg/2]).
+-export([unknown_msg/2, serv_name/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
 %%--------------------------------------------------------------------
-%% @private
 %% @doc
 %% Handle unknown massage
 %% use system log
@@ -26,3 +25,14 @@
 -spec(unknown_msg(Type :: call | cast | info | term(), Msg :: any()) -> ok).
 unknown_msg(Type, Msg) ->
   error_logger:warning_msg("received unknown ~p: ~p~n", [Type, Msg]).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% generate server name by port
+%%
+%% @spec serv_name(Port) -> Name
+%% @end
+%%--------------------------------------------------------------------
+-spec(serv_name(Port ::inet:port_number()) -> atom()).
+serv_name(Port) ->
+  list_to_atom("serv" ++ integer_to_list(Port)).

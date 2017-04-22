@@ -1,7 +1,7 @@
 %%%-------------------------------------------------------------------
 %%% @author Lustres
-%% @doc tcpserver top level supervisor.
-%%%
+%%% @doc tcpserver port level supervisor.
+%%% Combine tcpserver_serv with tcpserver_conn_sup together like one app
 %%% @end
 %%% Created : 03. Apr 2017 21:13
 %%%-------------------------------------------------------------------
@@ -11,7 +11,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -22,8 +22,8 @@
 %% API functions
 %%====================================================================
 
-start_link() ->
-    supervisor:start_link(?MODULE, []).
+start_link(Port, Count) ->
+    supervisor:start_link(?MODULE, [Port, Count]).
 
 %%====================================================================
 %% Supervisor callbacks
@@ -35,5 +35,6 @@ init([Port, Count]) ->
                 {tcpserver_serv, start_link, [self(), Port, Count]},
                 permanent,
                 1000,
-                worker},
-    {ok, { {reset_for_all, 4, 3600}, [ServSpec]} }.
+                worker,
+                [tcpserver_serv]},
+    {ok, { {one_for_all, 0, 1}, [ServSpec]} }.
